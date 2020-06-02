@@ -1,9 +1,15 @@
-import React from "react";
-import Admin from "react-crud-admin";
-import Form from "react-jsonschema-form";
-import "react-crud-admin/css";
-import { apiURL, apiKey } from "./config";
- 
+import 'react-crud-admin/css';
+
+import React from 'react';
+
+import Admin from 'react-crud-admin';
+import Form from 'react-jsonschema-form';
+
+import {
+  apiKey,
+  apiURL,
+} from './config';
+
 export class AudiencesAdmin extends Admin {
   constructor() {
     super();
@@ -34,7 +40,7 @@ export class AudiencesAdmin extends Admin {
     let schema = {
       title: this.name,
       type: "object",
-      required: ["name", "attribute", "attributeValue"],
+      required: ["name", "attribute", "attributeMatchCondition", "invertCondition"],
       properties: {
         _id: {
           type: "string",
@@ -67,6 +73,26 @@ export class AudiencesAdmin extends Admin {
               default: ""
             },
           }
+        },
+        attributeMatchCondition: {
+          type: "string",
+          title: "Attribute Value",
+          enum: [
+            'STRING_EQUALS',
+            'HAS_ANY_VALUE',
+            'CONTAINS_SUBSTRING',
+            'IS_FALSE',
+            'IS_TRUE',
+            'NUMBER_LESS_THAN',
+            'NUMBER_GREATER_THAN',
+            'NUMBER_EQUAL_TO',
+          ],
+          default: ""
+        },
+        invertCondition: {
+          type: "boolean",
+          title: "Invert the attribute matching condition",
+          default: false
         },
         attributeValue: { type: "string", title: "Attribute Value", default: "" },
       }
