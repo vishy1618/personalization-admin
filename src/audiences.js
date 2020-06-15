@@ -38,9 +38,76 @@ export class AudiencesAdmin extends Admin {
 
   get_form(object = null) {
     let schema = {
+      definitions: {
+        ruleCombination: {
+          title: 'Rule Combination',
+          type: 'object',
+          required: ['combinationType', 'rules'],
+          properties: {
+            __type: {
+              type: 'string',
+              default: 'RuleCombination',
+            },
+            combinationType: {
+              type: 'string',
+              enum: ['AND', 'OR'],
+            },
+            rules: {
+              type: 'array',
+              items: {
+                type: 'object',
+                oneOf: [
+                  {
+                    "$ref": "#/definitions/rule"
+                  },
+                  {
+                    "$ref": "#/definitions/ruleCombination"
+                  },
+                ]
+              }
+            }
+          }
+        },
+        rule: {
+          title: 'Rule',
+          type: 'object',
+          required: ['attribute', 'attributeMatchCondition', 'invertCondition'],
+          properties: {
+            __type: {
+              type: 'string',
+              default: 'Rule',
+            },
+            attribute: {
+              type: 'string',
+              title: 'Reference to attribute',
+            },
+            attributeMatchCondition: {
+              type: "string",
+              title: "Attribute Value",
+              enum: [
+                'STRING_EQUALS',
+                'HAS_ANY_VALUE',
+                'CONTAINS_SUBSTRING',
+                'IS_FALSE',
+                'IS_TRUE',
+                'NUMBER_LESS_THAN',
+                'NUMBER_GREATER_THAN',
+                'NUMBER_EQUAL_TO',
+              ],
+              default: "HAS_ANY_VALUE"
+            },
+            invertCondition: {
+              type: "boolean",
+              title: "Invert the attribute matching condition",
+              default: false
+            },
+            attributeValue: { type: "string", title: "Attribute Value", default: "" },
+          }
+        }
+      },
       title: this.name,
       type: "object",
-      required: ["name", "attribute", "attributeMatchCondition", "invertCondition"],
+      required: ["name", "definition"],
       properties: {
         _id: {
           type: "string",
@@ -53,51 +120,12 @@ export class AudiencesAdmin extends Admin {
           default: ""
         },
         description: { type: "string", title: "Description", default: "" },
-        attribute: {
-          type: "object",
-          title: "Attribute Reference",
-          properties: {
-            _id: {
-              type: "string",
-              title: "Attribute ID",
-              default: ""
-            },
-            key: {
-              type: "string",
-              title: "Attribute Key",
-              default: ""
-            },
-            description: {
-              type: "string",
-              title: "Attribute Description",
-              default: ""
-            },
-          }
-        },
-        attributeMatchCondition: {
-          type: "string",
-          title: "Attribute Value",
-          enum: [
-            'STRING_EQUALS',
-            'HAS_ANY_VALUE',
-            'CONTAINS_SUBSTRING',
-            'IS_FALSE',
-            'IS_TRUE',
-            'NUMBER_LESS_THAN',
-            'NUMBER_GREATER_THAN',
-            'NUMBER_EQUAL_TO',
-          ],
-          default: ""
-        },
-        invertCondition: {
-          type: "boolean",
-          title: "Invert the attribute matching condition",
-          default: false
-        },
-        attributeValue: { type: "string", title: "Attribute Value", default: "" },
+        definition: {
+          '$ref': '#/definitions/ruleCombination',
+        }
       }
     };
- 
+
     if (!object) {
       return <Form schema={schema} onSubmit={this.formSubmit.bind(this)} />;
     } else {
@@ -115,8 +143,7 @@ export class AudiencesAdmin extends Admin {
 
   async createAudience(formData) {
     this.show_progress();
-    formData.attribute = formData.attribute._id;
-    await fetch(`${apiURL}/audiences`, {
+    const response = await fetch(`${apiURL}/audiences`, {
       headers: {
         api_key: apiKey,
         'Content-Type': 'application/json',
@@ -124,6 +151,10 @@ export class AudiencesAdmin extends Admin {
       method: 'POST',
       body: JSON.stringify(formData),
     });
+    if (response.status !== 201) {
+      const errorResponse = await response.json();
+      alert('Error updating: \n' + JSON.stringify(errorResponse.message));
+    }
 
     this.response_add();
     await this.fetchAudiences();
@@ -163,9 +194,9 @@ export class AudiencesAdmin extends Admin {
   }
 
   async updateAudience(formData) {
+    console.log(formData);
     this.show_progress();
-    formData.attribute = formData.attribute._id;
-    await fetch(`${apiURL}/audiences/${formData._id}`, {
+    const response = await fetch(`${apiURL}/audiences/${formData._id}`, {
       headers: {
         api_key: apiKey,
         'Content-Type': 'application/json',
@@ -173,6 +204,10 @@ export class AudiencesAdmin extends Admin {
       method: 'PUT',
       body: JSON.stringify(formData),
     });
+    if (response.status !== 200) {
+      const errorResponse = await response.json();
+      alert('Error updating: \n' + JSON.stringify(errorResponse.message));
+    }
 
     this.response_add();
     await this.fetchAudiences();
