@@ -10,6 +10,8 @@ import {
   apiURL,
 } from './config';
 
+const systemAttributeTypes = ['DEVICE_TYPE', 'OPERATING_SYSTEM'];
+
 export class AudiencesAdmin extends Admin {
   constructor() {
     super();
@@ -17,9 +19,11 @@ export class AudiencesAdmin extends Admin {
     this.name_plural = "Audiences"; // name of the objects in plural
     this.list_display_links = ["name"]; // which property of the object is clickable
     this.list_display = ["name", "description"]; // a list of properties of the object to displayed on the list display page
+    this.attributes = [];
   }
   get_queryset(page_number, list_per_page, queryset) {
     this.fetchAudiences();
+    this.getAttributes();
     return queryset;
   }
 
@@ -36,27 +40,42 @@ export class AudiencesAdmin extends Admin {
     this.hide_progress();
   }
 
+  async getAttributes() {
+    const attributesResponse = await fetch(`${apiURL}/attributes`, {
+      headers: {
+        api_key: apiKey,
+      }
+    });
+
+    const attributes = await attributesResponse.json();
+    this.attributes = attributes;
+  }
+
   get_form(object = null) {
+    const attributeIds = this.attributes.map(attribute => attribute._id);
+    const attributeNames = this.attributes.map(attribute => attribute.name);
     let schema = {
       definitions: {
         ruleCombination: {
           title: 'Rule Combination',
           type: 'object',
-          required: ['combinationType', 'rules'],
+          // required: ['combinationType', 'rules'],
+          default: {
+            combinationType: 'AND',
+            rules: [],
+          },
+          required: [],
           properties: {
-            __type: {
-              type: 'string',
-              default: 'RuleCombination',
-            },
             combinationType: {
               type: 'string',
               enum: ['AND', 'OR'],
+              default: 'AND',
             },
             rules: {
               type: 'array',
               items: {
                 type: 'object',
-                oneOf: [
+                anyOf: [
                   {
                     "$ref": "#/definitions/rule"
                   },
@@ -72,18 +91,31 @@ export class AudiencesAdmin extends Admin {
           title: 'Rule',
           type: 'object',
           required: ['attribute', 'attributeMatchCondition', 'invertCondition'],
-          properties: {
-            __type: {
-              type: 'string',
-              default: 'Rule',
-            },
+          default: {
             attribute: {
-              type: 'string',
+              ref: attributeIds[0],
+            },
+            attributeMatchCondition: 'STRING_EQUALS',
+            invertCondition: false,
+          },
+          properties: {
+            attribute: {
+              type: 'object',
               title: 'Reference to attribute',
+              required: ['ref'],
+              properties: {
+                ref: {
+                  title: 'Attribute Reference',
+                  type: 'string',
+                  enum: attributeIds.concat(systemAttributeTypes),
+                  enumNames: attributeNames.concat(systemAttributeTypes),
+                  default: attributeIds[0],
+                }
+              }
             },
             attributeMatchCondition: {
               type: "string",
-              title: "Attribute Value",
+              title: "Attribute Match Condition",
               enum: [
                 'STRING_EQUALS',
                 'HAS_ANY_VALUE',
@@ -94,7 +126,7 @@ export class AudiencesAdmin extends Admin {
                 'NUMBER_GREATER_THAN',
                 'NUMBER_EQUAL_TO',
               ],
-              default: "HAS_ANY_VALUE"
+              default: "STRING_EQUALS"
             },
             invertCondition: {
               type: "boolean",
@@ -107,7 +139,8 @@ export class AudiencesAdmin extends Admin {
       },
       title: this.name,
       type: "object",
-      required: ["name", "definition"],
+      // required: ["name", "definition"],
+      required: [],
       properties: {
         _id: {
           type: "string",
@@ -134,6 +167,29 @@ export class AudiencesAdmin extends Admin {
   }
 
   formSubmit(form) {
+    console.log(form.formData);
+    function setTypesForRuleCombination(ruleCombination) {
+      ruleCombination.__type = 'RuleCombination';
+      for (const rule of ruleCombination.rules) {
+        setTypesForRule(rule);
+      }
+    }
+
+    function setTypesForRule(rule) {
+      if (rule.combinationType !== undefined) {
+        setTypesForRuleCombination(rule);
+      } else {
+        rule.__type = 'Rule';
+        if (systemAttributeTypes.includes(rule.attribute.ref)) {
+          rule.attribute.__type = 'PresetAttributeReference';
+        } else {
+          rule.attribute.__type = 'UserAttributeReference';
+        }
+      }
+    }
+
+    setTypesForRuleCombination(form.formData.definition);
+
     if (form.edit) {
       this.updateAudience(form.formData);
     } else {

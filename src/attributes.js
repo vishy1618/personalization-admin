@@ -1,9 +1,15 @@
-import React from "react";
-import Admin from "react-crud-admin";
-import Form from "react-jsonschema-form";
-import "react-crud-admin/css";
-import { apiURL, apiKey } from "./config";
- 
+import 'react-crud-admin/css';
+
+import React from 'react';
+
+import Admin from 'react-crud-admin';
+import Form from 'react-jsonschema-form';
+
+import {
+  apiKey,
+  apiURL,
+} from './config';
+
 export class AttributesAdmin extends Admin {
   constructor() {
     super();
@@ -39,6 +45,11 @@ export class AttributesAdmin extends Admin {
         _id: {
           type: "string",
           title: "Attribute ID",
+          default: ""
+        },
+        name: {
+          type: "string",
+          title: "Name",
           default: ""
         },
         key: {
