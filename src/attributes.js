@@ -94,10 +94,8 @@ export class AttributesAdmin extends Admin {
   }
 
   get_actions() {
-    {
-      return {
-        delete: this.deleteAttributes.bind(this),
-      }
+    return {
+      delete: this.deleteAttributes.bind(this),
     }
   }
 

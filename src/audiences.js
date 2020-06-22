@@ -218,10 +218,8 @@ export class AudiencesAdmin extends Admin {
   }
 
   get_actions() {
-    {
-      return {
-        delete: this.deleteAudiences.bind(this),
-      }
+    return {
+      delete: this.deleteAudiences.bind(this),
     }
   }
 
