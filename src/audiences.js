@@ -10,7 +10,7 @@ import {
   apiURL,
 } from './config';
 
-const systemAttributeTypes = ['DEVICE_TYPE', 'OPERATING_SYSTEM'];
+const presetAttributeTypes = ['DEVICE_TYPE', 'OPERATING_SYSTEM', 'QUERY_PARAMETERS'];
 
 export class AudiencesAdmin extends Admin {
   constructor() {
@@ -56,6 +56,62 @@ export class AudiencesAdmin extends Admin {
     const attributeNames = this.attributes.map(attribute => attribute.name);
     let schema = {
       definitions: {
+        stringMatchOptions: {
+          type: 'object',
+          properties: {
+            value: {
+              type: 'string',
+              title: 'String value',
+              default: '',
+            }
+          }
+        },
+        numberMatchOptions: {
+          type: 'object',
+          properties: {
+            value: {
+              type: 'number',
+              title: 'Number value',
+              default: '',
+            }
+          }
+        },
+        jsonMatchOptions: {
+          type: 'object',
+          properties: {
+            pointer: {
+              type: 'string',
+              title: 'JSON pointer',
+              default: '',
+            },
+            matchCondition: {
+              type: 'string',
+              title: 'Match Condition for embedded value',
+              enum: [
+                'STRING_EQUALS',
+                'HAS_ANY_VALUE',
+                'CONTAINS_SUBSTRING',
+                'IS_FALSE',
+                'IS_TRUE',
+                'NUMBER_LESS_THAN',
+                'NUMBER_GREATER_THAN',
+                'NUMBER_EQUAL_TO',
+              ],
+              default: "STRING_EQUALS",
+            },
+            matchOptions: {
+              type: 'object',
+              anyOf: [
+                {
+                  "$ref": "#/definitions/stringMatchOptions"
+                },
+                {
+                  "$ref": "#/definitions/numberMatchOptions"
+                },
+              ]
+            }
+          }
+        },
         ruleCombination: {
           title: 'Rule Combination',
           type: 'object',
@@ -107,8 +163,8 @@ export class AudiencesAdmin extends Admin {
                 ref: {
                   title: 'Attribute Reference',
                   type: 'string',
-                  enum: attributeIds.concat(systemAttributeTypes),
-                  enumNames: attributeNames.concat(systemAttributeTypes),
+                  enum: attributeIds.concat(presetAttributeTypes),
+                  enumNames: attributeNames.concat(presetAttributeTypes),
                   default: attributeIds[0],
                 }
               }
@@ -125,6 +181,7 @@ export class AudiencesAdmin extends Admin {
                 'NUMBER_LESS_THAN',
                 'NUMBER_GREATER_THAN',
                 'NUMBER_EQUAL_TO',
+                'JSON_MATCH',
               ],
               default: "STRING_EQUALS"
             },
@@ -133,7 +190,20 @@ export class AudiencesAdmin extends Admin {
               title: "Invert the attribute matching condition",
               default: false
             },
-            attributeValue: { type: "string", title: "Attribute Value", default: "" },
+            attributeMatchOptions: {
+              type: 'object',
+              anyOf: [
+                {
+                  "$ref": "#/definitions/stringMatchOptions"
+                },
+                {
+                  "$ref": "#/definitions/numberMatchOptions"
+                },
+                {
+                  "$ref": "#/definitions/jsonMatchOptions"
+                },
+              ]
+            },
           }
         }
       },
@@ -180,11 +250,27 @@ export class AudiencesAdmin extends Admin {
         setTypesForRuleCombination(rule);
       } else {
         rule.__type = 'Rule';
-        if (systemAttributeTypes.includes(rule.attribute.ref)) {
+        if (presetAttributeTypes.includes(rule.attribute.ref)) {
           rule.attribute.__type = 'PresetAttributeReference';
         } else {
           rule.attribute.__type = 'UserAttributeReference';
         }
+        if (rule.attributeMatchOptions.value) {
+          if (typeof rule.attributeMatchOptions.value === 'string') {
+            rule.attributeMatchOptions.__type = 'StringMatchOptions';
+          } else {
+            rule.attributeMatchOptions.__type = 'NumberMatchOptions';
+          }
+        } else {
+          rule.attributeMatchOptions.__type = 'JSONMatchOptions';
+          const jsonMatchOptions = rule.attributeMatchOptions;
+          if (typeof jsonMatchOptions.matchOptions.value === 'string') {
+            jsonMatchOptions.matchOptions.__type = 'StringMatchOptions';
+          } else {
+            jsonMatchOptions.matchOptions.__type = 'NumberMatchOptions';
+          }
+        }
+        
       }
     }
 
