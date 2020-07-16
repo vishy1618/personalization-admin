@@ -10,7 +10,7 @@ import {
   apiURL,
 } from './config';
 
-const presetAttributeTypes = ['DEVICE_TYPE', 'OPERATING_SYSTEM', 'QUERY_PARAMETERS'];
+const presetAttributeTypes = ['DEVICE_TYPE', 'OPERATING_SYSTEM', 'QUERY_PARAMETERS', 'REFERRER'];
 
 export class AudiencesAdmin extends Admin {
   constructor() {
