@@ -1,13 +1,17 @@
-import React from 'react';
 import './App.css';
-import { AudiencesAdmin } from "./audiences";
-import { AttributesAdmin } from "./attributes";
+
+import React from 'react';
+
 import {
   BrowserRouter as Router,
-  Switch,
+  Link,
   Route,
-  Link
-} from "react-router-dom";
+  Switch,
+} from 'react-router-dom';
+
+import { AttributesAdmin } from './attributes';
+import { AudiencesAdmin } from './audiences';
+import { VariationsAdmin } from './variations';
 
 function App() {
   return (
@@ -22,6 +26,9 @@ function App() {
             <li>
               <Link to="/audiences"><b>Audiences</b></Link>
             </li>
+            <li>
+              <Link to="/variations"><b>Variations</b></Link>
+            </li>
           </ul>
         </nav>
 
@@ -33,6 +40,9 @@ function App() {
           </Route>
           <Route path="/audiences">
             <AudiencesAdmin />
+          </Route>
+          <Route path="/variations">
+            <VariationsAdmin />
           </Route>
         </Switch>
       </div>
